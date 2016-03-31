@@ -1,0 +1,7 @@
+[package]
+name = "problem-3"
+version = "0.1.0"
+authors = ["Michael Dunsmuir <mjdunsmuir@gmail.com>"]
+
+[dependencies]
+primal = "0.2"
