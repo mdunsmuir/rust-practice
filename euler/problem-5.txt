@@ -1,0 +1,5 @@
+No programming needed, just a) find the prime factors and multiplicities
+thereof of all numbers 2..20, and b) the answer is the product of all unique
+prime factors each raised to the largest multiplicity they appeared with, i.e.:
+
+2^4 * 3^2 * 5 * 7 * 11 * 13 * 17 * 19 = 232792560

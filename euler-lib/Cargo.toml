@@ -1,7 +1,7 @@
 [package]
-name = "problem-3"
+name = "euler"
 version = "0.1.0"
 authors = ["Michael Dunsmuir <mjdunsmuir@gmail.com>"]
 
 [dependencies]
-euler = { path = "../../euler-lib" }
+primal = "0.2"
