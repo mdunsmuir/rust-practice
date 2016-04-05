@@ -1,14 +1,13 @@
 /// Functionality related to prime numbers
 pub mod primes {
 
-    extern crate primal;
-
     pub fn factors(mut x: i64) -> Vec<i64> {
         let mut facs: Vec<i64> = vec![];
 
         'outer: loop {
             let sqrt_x = (x as f64).sqrt();
-            let candidates = primal::Primes::all().take_while(|c| (*c as f64) <= sqrt_x);
+            let sieve = Sieve::new(100000);
+            let candidates = sieve.take_while(|c| (*c as f64) <= sqrt_x);
 
             for candidate in candidates {
                 let icandidate = candidate as i64;
@@ -24,6 +23,81 @@ pub mod primes {
         }
 
         return facs;
+    }
+
+    pub struct Sieve {
+        pub primes: Vec<usize>,
+        segment_size: usize,
+        i_segment: usize,
+        n: usize
+    }
+
+    impl Sieve {
+        pub fn new(segment_size: usize) -> Sieve {
+            Sieve {
+                primes: Vec::new(),
+                segment_size: segment_size,
+                i_segment: 0,
+                n: 0
+            }
+        }
+
+        pub fn do_segment(&mut self) {
+            let start = self.i_segment * self.segment_size;
+            let mut sieve = vec![false; self.segment_size];
+            let mut new_primes = Vec::new();
+
+            if self.i_segment == 0 { 
+                sieve[0] = true;
+                sieve[1] = true;
+                sieve[2] = true;
+                new_primes.push(2);
+            }
+
+            for p in &self.primes {
+                if *p == 2 { continue }
+                if start + self.segment_size <= p.pow(2) { break }
+
+                let base = *p * (start / *p);
+                let mut m = if base < start { base + *p  } else { base };
+
+                while m < start + self.segment_size {
+                    sieve[m - start] = true;
+                    m += *p;
+                }
+            }
+
+            let mut n = start;
+            if n % 2 == 0 {n += 1 };
+            while n < start + self.segment_size {
+                if !sieve[n - start] {
+                    new_primes.push(n);
+
+                    let mut m = n * 2;
+                    while m < start + self.segment_size {
+                        sieve[m - start] = true;
+                        m += n;
+                    }
+                }
+
+                n += 2;
+            }
+
+            self.primes.append(&mut new_primes);
+            self.i_segment += 1;
+        }
+    }
+
+    impl Iterator for Sieve {
+        type Item = usize;
+
+        fn next(&mut self) -> Option<usize> {
+            while self.n >= self.primes.len() {
+                self.do_segment();
+            }
+            self.n += 1;
+            Some(self.primes[self.n - 1])
+        }
     }
 }
 
