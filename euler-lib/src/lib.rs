@@ -26,7 +26,7 @@ pub mod primes {
     }
 
     pub struct Sieve {
-        pub primes: Vec<usize>,
+        primes: Vec<usize>,
         segment_size: usize,
         i_segment: usize,
         n: usize
@@ -68,7 +68,7 @@ pub mod primes {
             }
 
             let mut n = start;
-            if n % 2 == 0 {n += 1 };
+            if n % 2 == 0 { n += 1 };
             while n < start + self.segment_size {
                 if !sieve[n - start] {
                     new_primes.push(n);
