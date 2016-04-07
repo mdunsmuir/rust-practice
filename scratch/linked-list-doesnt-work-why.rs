@@ -1,10 +1,7 @@
 pub mod list {
 
     #[derive(Debug)]
-    struct Node<T> {
-        value: T,
-        next: Option<Box<Node<T>>>,
-    }
+    struct Node<T>(T, Option<Box<Node<T>>>);
 
     #[derive(Debug)]
     pub struct List<T> {
@@ -19,14 +16,14 @@ pub mod list {
 
         pub fn cons(&mut self, val: T) {
             let old_head = self.head.take();
-            self.head = Some(Box::new(Node { value: val, next: old_head }));
+            self.head = Some(Box::new(Node(val, old_head)));
         }
 
         pub fn uncons(&mut self) -> Option<T> {
             self.head.take().map(|head| {
-                let head = *head;
-                self.head = head.next;
-                head.value
+                let Node(val, next) = *head;
+                self.head = next;
+                val
             })
         }
 
