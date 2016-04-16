@@ -1,14 +1,16 @@
 pub mod list {
 
+    type Link<T> = Option<Box<Node<T>>>;
+
     #[derive(Debug)]
     struct Node<T> {
         value: T,
-        next: Option<Box<Node<T>>>,
+        next: Link<T>,
     }
 
     #[derive(Debug)]
     pub struct List<T> {
-        head: Option<Box<Node<T>>>,
+        head: Link<T>,
     }
 
     impl <T> List<T> {
@@ -39,15 +41,46 @@ pub mod list {
         }
 
         pub fn iter(&self) -> ListIter<T> {
-            ListIter { head: &self.head }
+            ListIter { head: self.head.as_ref().map(|boxed| &**boxed) }
+        }
+
+        pub fn iter_mut(&mut self) -> ListIterMut<T> {
+            ListIterMut { head: self.head.as_mut().map(|boxed| &mut **boxed) }
         }
 
     }
 
     pub struct ListIter<'a, T: 'a> {
-        head: &'a Option<Box<Node<T>>>,
+        head: Option<&'a Node<T>>,
     }
 
+    impl <'a, T: 'a> Iterator for ListIter<'a, T> {
+        type Item = &'a T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.head.take().map(|head| {
+                self.head = head.next.as_ref().map(|boxed| &**boxed);
+                &head.value
+            })
+        }
+    }
+
+    pub struct ListIterMut<'a, T: 'a> {
+        head: Option<&'a mut Node<T>>,
+    }
+
+    impl <'a, T: 'a> Iterator for ListIterMut<'a, T> {
+        type Item = &'a mut T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            self.head.take().map(|head| {
+                self.head = head.next.as_mut().map(|boxed| &mut **boxed);
+                &mut head.value
+            })
+        }
+    }
+
+    /*
     impl <'a, T> IntoIterator for &'a List<T> {
         type Item = &'a T;
         type IntoIter = ListIter<'a, T>;
@@ -60,14 +93,14 @@ pub mod list {
     impl <'a, T: 'a> Iterator for ListIter<'a, T> {
         type Item = &'a T;
 
-        fn next(&mut self) -> Option<Self::Item> {
+        fn next<'b>(&'b mut self) -> Option<Self::Item> {
             self.head.as_ref().map(|head| {
                 self.head = &head.next;
                 &head.value
             })
         }
     }
-
+    */
 }
 
 fn main() {
@@ -82,8 +115,18 @@ fn main() {
 
     list.cons(40);
 
-    for val in list.into_iter() {
+    for val in list.iter() {
         println!("{}", val);
+    }
+
+    for val in list.iter_mut() {
+        *val += 7;
+    }
+
+    {
+        let mut im = list.iter_mut();
+        let a = im.next();
+        let b = im.next();
     }
 
     list.cons(60);
