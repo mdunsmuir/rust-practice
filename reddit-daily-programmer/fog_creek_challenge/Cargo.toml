@@ -1,0 +1,6 @@
+[package]
+name = "fog_creek_challenge"
+version = "0.1.0"
+authors = ["Michael Dunsmuir <mjdunsmuir@gmail.com>"]
+
+[dependencies]
