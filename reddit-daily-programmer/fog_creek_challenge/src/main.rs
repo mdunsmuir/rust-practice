@@ -21,7 +21,6 @@ mod ranges {
 
     #[derive(Debug)]
     pub struct ClosedPair {
-        pub len: usize,
         pub start: usize,
         pub end: usize,
         pub chr: u8,
@@ -30,8 +29,7 @@ mod ranges {
     impl ClosedPair {
 
         pub fn len(&self) -> usize {
-            self.len
-            //self.end - self.start + 1
+            self.end - self.start + 1
         }
 
     }
@@ -46,32 +44,30 @@ mod ranges {
             }
         }
 
-        pub fn next_char(mut self, chr: u8, i: usize) -> RangeResult {
+        fn close(&self) -> ClosedPair {
+            ClosedPair {
+                chr: self.chr,
+                start: self.start,
+                end: self.start + self.found.len(),
+            }
+        }
+
+        pub fn next_char(mut self, chr: u8) -> RangeResult {
             let not_already_found = self.found.insert(chr);
 
             if not_already_found {
                 if chr == self.chr {
-                    let closed = ClosedPair {
-                        len: self.found.len() + 1,
-                        start: self.start,
-                        end: i,
-                        chr: self.chr
-                    };
+                    let closed = self.close();
                     Both(self, closed)
-
                 } else {
                     Open(self)
                 }
 
             } else {
                 if chr == self.chr {
-                    Closed(ClosedPair {
-                        len: self.found.len() + 2,
-                        start: self.start,
-                        end: i,
-                        chr: self.chr
-                    })
-
+                    let mut closed = self.close();
+                    closed.end += 1;
+                    Closed(closed)
                 } else {
                     Aborted
                 }
@@ -90,31 +86,28 @@ use std::str;
 use ranges::*;
 use ranges::RangeResult::*;
 
-fn find_pairs(string: &Vec<Option<u8>>) -> Option<VecDeque<ClosedPair>> {
+fn find_pairs(string: &Vec<u8>) -> Option<VecDeque<ClosedPair>> {
     let mut closed = VecDeque::new();
     let mut open: VecDeque<OpenPair> = VecDeque::new();
 
-    for (i, opt_chr) in string.into_iter().enumerate() {
-        match *opt_chr {
-            None => continue,
+    for (i, chr) in string.into_iter().enumerate() {
+        let mut updated_open = VecDeque::new();
 
-            Some(chr) => {
-                for _ in 0..open.len() {
-                    let pair = open.pop_front().unwrap();
-                    match pair.next_char(chr, i) {
-                        Open(pair) => open.push_back(pair),
-                        Closed(pair) => closed.push_back(pair),
-                        Both(opair, cpair) => {
-                            open.push_back(opair);
-                            closed.push_back(cpair);
-                        },
-                        _ => (),
-                    }
-                }
-
-                open.push_back(OpenPair::start(chr, i));
-            },
+        for _ in 0..open.len() {
+            let pair = open.pop_front().unwrap();
+            match pair.next_char(*chr) {
+                Open(pair) => updated_open.push_back(pair),
+                Closed(pair) => closed.push_back(pair),
+                Both(opair, cpair) => {
+                    updated_open.push_back(opair);
+                    closed.push_back(cpair);
+                },
+                _ => (),
+            }
         }
+
+        updated_open.push_back(OpenPair::start(*chr, i));
+        open = updated_open;
     }
 
     if closed.len() > 0 {
@@ -124,13 +117,8 @@ fn find_pairs(string: &Vec<Option<u8>>) -> Option<VecDeque<ClosedPair>> {
     }
 }
 
-fn process_string(string: &Vec<u8>) -> Vec<u8> {
-    let mut opt_string = Vec::new();
-    for chr in string {
-        opt_string.push(Some(*chr));
-    }
-
-    while let Some(mut pairs) = find_pairs(&opt_string) {
+fn process_string(string: &mut Vec<u8>) {
+    while let Some(mut pairs) = find_pairs(string) {
         let mut max = pairs.pop_front().unwrap();
 
         for pair in pairs {
@@ -139,16 +127,15 @@ fn process_string(string: &Vec<u8>) -> Vec<u8> {
             }
         }
 
-        opt_string[max.start] = None;
-        let to_end = opt_string[max.end].take();
-        opt_string.push(to_end);
+        string.remove(max.start);
+        let last = string.remove(max.end - 1);
+        string.push(last);
     }
 
-    opt_string.into_iter()
-              .filter(|opt_chr| opt_chr.is_some())
-              .map(|opt_chr| opt_chr.unwrap())
-              .take_while(|chr| *chr != 95)
-              .collect::<Vec<u8>>()
+    *string = string.into_iter()
+                    .take_while(|chr| **chr != 95)
+                    .map(|chr| *chr)
+                    .collect();
 }
 
 fn main() {
@@ -158,9 +145,9 @@ fn main() {
 
     string = string.into_iter().filter(|chr| *chr != 10).collect();
 
-    let processed = process_string(&string);
+    process_string(&mut string);
 
-    match str::from_utf8(&processed) {
+    match str::from_utf8(&string) {
         Ok(string) => println!("{}", string),
         err => println!("{:?}", err),
     }
