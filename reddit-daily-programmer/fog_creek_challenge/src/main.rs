@@ -91,23 +91,20 @@ fn find_pairs(string: &Vec<u8>) -> Option<VecDeque<ClosedPair>> {
     let mut open: VecDeque<OpenPair> = VecDeque::new();
 
     for (i, chr) in string.into_iter().enumerate() {
-        let mut updated_open = VecDeque::new();
-
         for _ in 0..open.len() {
             let pair = open.pop_front().unwrap();
             match pair.next_char(*chr) {
-                Open(pair) => updated_open.push_back(pair),
+                Open(pair) => open.push_back(pair),
                 Closed(pair) => closed.push_back(pair),
                 Both(opair, cpair) => {
-                    updated_open.push_back(opair);
+                    open.push_back(opair);
                     closed.push_back(cpair);
                 },
                 _ => (),
             }
         }
 
-        updated_open.push_back(OpenPair::start(*chr, i));
-        open = updated_open;
+        open.push_back(OpenPair::start(*chr, i));
     }
 
     if closed.len() > 0 {
@@ -141,10 +138,9 @@ fn process_string(string: &mut Vec<u8>) {
 fn main() {
     let mut stdin = stdin();
     let mut string = Vec::new();
+
     stdin.read_to_end(&mut string);
-
     string = string.into_iter().filter(|chr| *chr != 10).collect();
-
     process_string(&mut string);
 
     match str::from_utf8(&string) {
