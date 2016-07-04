@@ -1,84 +1,74 @@
-use std::str::FromStr;
+extern crate grid;
 
-#[derive(Debug)]
-pub struct Grid<T> {
-    values: Vec<T>,
-    width: usize,
+use grid::Grid;
+use std::cmp::max;
+
+type GridNum = i64;
+
+fn get_grid() -> Grid<GridNum> {
+    let file_name = "input.txt";
+    match Grid::from_file(file_name) {
+        Err(err) => panic!("{:?}", err),
+        Ok(grid) => grid,
+    }
 }
 
-impl <T> Grid<T> {
+fn straight_max<F>(grid: &Grid<GridNum>, at: F) -> GridNum
+    where F: Fn(usize, usize) -> GridNum {
 
-    pub fn height(&self) -> usize {
-        self.values.len() / self.width
-    }
+    let mut max = None;
 
-    pub fn at(&self, x: usize, y: usize) -> &T {
-        if x >= self.width {
-            panic!("x index out of bounds");
-        }
+    for j in 0..grid.width() {
+        for i in 0..(grid.width() - 3) {
+            let mut sum = 1;
 
-        &self.values[x + y * self.width]
-    }
+            for ii in i..(i + 4) {
+                sum *= at(ii, j);
+            }
 
-}
-
-#[derive(Debug)]
-pub struct FromStrErr;
-
-impl <T: FromStr> FromStr for Grid<T> {
-
-    type Err = FromStrErr;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut grid: Grid<T> = Grid { values: Vec::new(), width: 0 };
-        let mut width: Option<usize> = None;
-
-        for line in s.lines() {
-            let words: Vec<&str> = line.split_whitespace().collect();
-
-            match width {
-                None => {
-                    grid.width = words.len();
-                    width = Some(words.len());
-                },
-                Some(len) => if words.len() != len {
-                    panic!("lines not same length!");
-                },
-            };
-
-            for word in words {
-                match T::from_str(word) {
-                    Err(_) => return Err(FromStrErr),
-                    Ok(value) => grid.values.push(value),
-                }
+            match max {
+                None => max = Some(sum),
+                Some(prev) => if prev < sum { max = Some(sum) },
             }
         }
-
-        Ok(grid)
     }
 
+    max.unwrap()
+}
+
+fn diag_max(grid: &Grid<GridNum>) -> GridNum {
+    let mut best = None;
+
+    for j in 0..(grid.height() - 3) {
+        for i in 0..(grid.width() - 3) {
+            let mut right = 1;
+            let mut left = 1;
+
+            for ii in 0..4 {
+                right *= *grid.at(i + ii, j + ii);
+                left *= *grid.at(i + 3 - ii, j + ii);
+            }
+
+            let this_best = max(right, left);
+
+            match best {
+                None => best = Some(this_best),
+                Some(prev) => if prev < this_best { best = Some(this_best) },
+            }
+        }
+    }
+
+    best.unwrap()
+}
+
+fn answer(grid: &Grid<GridNum>) -> GridNum {
+    let mut best = straight_max(grid, |x, y| *grid.at(x, y));
+    best = max(best, straight_max(grid, |x, y| *grid.at(y, x)));
+    best = max(best, diag_max(grid));
+    best
 }
 
 fn main() {
-    println!("Hello, world!");
-}
-
-#[cfg(test)]
-mod tests {
-
-    use super::*;
-    use std::str::FromStr;
-
-    #[test]
-    fn it_works() {
-        let string = "1 2 3\n4 5 6\n7 8 9";
-        let grid: Grid<i64> = Grid::from_str(&string).unwrap();
-
-        assert_eq!(3, grid.width);
-        assert_eq!(3, grid.height());
-
-        assert_eq!(1, *grid.at(0, 0));
-        assert_eq!(6, *grid.at(2, 1));
-    }
-
+    let grid = get_grid();
+    println!("{}", answer(&grid));
 }
