@@ -1,0 +1,7 @@
+[package]
+name = "problem-83"
+version = "0.1.0"
+authors = ["Michael Dunsmuir <michael.dunsmuir@vaisala.com>"]
+
+[dependencies]
+grid = { path = "../crates/grid" }
